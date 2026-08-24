@@ -5,7 +5,7 @@ import { env } from './src/lib/server/env';
 
 export default defineConfig({
 	out: './drizzle',
-	schema: './src/lib/server/db/schema.ts',
+	schema: './src/lib/server/db/schemas/index.ts',
 	dialect: 'sqlite',
 	dbCredentials: {
 		url: env.DATABASE_URL

@@ -1,1 +1,1 @@
-export { usersTable } from './user';
+export { account, authRelations, session, user, verification } from './auth.schema';

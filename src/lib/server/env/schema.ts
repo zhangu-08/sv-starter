@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 export const serverEnvSchema = z.object({
-	DATABASE_URL: z.string().min(1, 'DATABASE_URL is required')
+	DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+	BETTER_AUTH_URL: z.url().min(1, 'BETTER_AUTH_URL is required'),
+	BETTER_AUTH_SECRET: z.string().min(32, 'BETTER_AUTH_SECRET is required')
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
