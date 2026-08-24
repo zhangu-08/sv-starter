@@ -1,10 +1,5 @@
-import { drizzle } from 'drizzle-orm/libsql';
-import { createClient } from '@libsql/client';
+import { DATABASE_URL } from '$app/env/private';
 
-import { env } from '$lib/server/env';
+import { createDb } from './create-db';
 
-import { authRelations } from './schemas/auth.schema';
-
-const client = createClient({ url: env.DATABASE_URL });
-
-export const db = drizzle({ client, relations: authRelations });
+export const db = createDb(DATABASE_URL);

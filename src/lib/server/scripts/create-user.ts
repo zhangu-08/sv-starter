@@ -1,7 +1,10 @@
 import { parseArgs } from 'node:util';
 
+import { createAuthOptions } from '$lib/server/auth/options';
 import { provisionUser } from '$lib/server/auth/provision-user';
 import { formatZodError, provisionUserSchema } from '$lib/server/auth/validation.schema';
+import { createDb } from '$lib/server/db/create-db';
+import { parsePrivateEnv } from '$lib/server/env-schema';
 import { promptPassword } from '$lib/server/utils/prompt-password';
 
 function printHelp() {
@@ -51,7 +54,16 @@ async function main() {
 		process.exit(1);
 	}
 
-	const user = await provisionUser(parsed.data);
+	const env = parsePrivateEnv();
+	const db = createDb(env.DATABASE_URL);
+	const user = await provisionUser(
+		parsed.data,
+		createAuthOptions({
+			db,
+			baseURL: env.BETTER_AUTH_URL,
+			secret: env.BETTER_AUTH_SECRET
+		})
+	);
 
 	console.log(`User created: ${user.email} (${user.id})`);
 }

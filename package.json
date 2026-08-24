@@ -5,7 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "portless run vite dev",
-		"build": "vite build && vite build --config vite.script.config.ts",
+		"build": "vite build && pnpm build:script",
+		"build:script": "esbuild src/lib/server/scripts/create-user.ts --bundle --platform=node --format=esm --packages=external --outfile=build/scripts/create-user.js",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -15,8 +16,7 @@
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:studio": "drizzle-kit studio",
-		"create-user": "tsx --env-file=.env ./src/lib/server/scripts/create-user.ts",
-		"create-user:prod": "node --env-file=.env build/scripts/create-user.js"
+		"create-user": "tsx --env-file=.env ./src/lib/server/scripts/create-user.ts"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
@@ -28,6 +28,7 @@
 		"@types/node": "^24",
 		"clsx": "^2.1.1",
 		"drizzle-kit": "1.0.0-rc.4",
+		"esbuild": "^0.28.2",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",

@@ -1,15 +1,16 @@
 <script>
-	import { Button } from '$lib/components/ui/button';
+	import Button from '$lib/components/ui/button/button.svelte';
 </script>
 
 <div class="m-4">
-	<h1>Welcome to SvelteKit</h1>
-	<p>
-		Visit
-		<a class="text-blue-800 underline" href="https://svelte.dev/docs/kit"> svelte.dev/docs/kit </a>
-		to read the documentation
-	</p>
+	<h1>Welcome to Svelte starter project!</h1>
 
-	<Button variant="secondary">Cancel</Button>
-	<Button variant="default">Save Threshold</Button>
+	Refer <Button
+		href="https://svelte.dev/docs/kit/introduction"
+		variant="link"
+		class="px-0 underline"
+		rel="external"
+	>
+		Docs
+	</Button> for further info.
 </div>
