@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** Shared with better-auth emailAndPassword config in config.ts. */
+/** Shared with better-auth emailAndPassword config. */
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 
