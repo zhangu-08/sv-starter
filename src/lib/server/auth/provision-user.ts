@@ -1,7 +1,8 @@
 import { betterAuth } from 'better-auth';
 
+import { formatZodError, provisionUserSchema, type ProvisionUserInput } from '$lib/schemas';
+
 import type { AuthOptions } from './options';
-import { formatZodError, provisionUserSchema, type ProvisionUserInput } from './validation.schema';
 
 /** Matches `createLocalAccountIssuer('credential')` from better-auth. */
 const CREDENTIAL_ISSUER = 'local:credential';

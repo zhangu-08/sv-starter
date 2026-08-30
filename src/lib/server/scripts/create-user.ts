@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util';
 
 import { createAuthOptions } from '$lib/server/auth/options';
 import { provisionUser } from '$lib/server/auth/provision-user';
-import { formatZodError, provisionUserSchema } from '$lib/server/auth/validation.schema';
+import { formatZodError, provisionUserSchema } from '$lib/schemas';
 import { createDb } from '$lib/server/db/create-db';
 import { parsePrivateEnv } from '$lib/server/env-schema';
 import { promptPassword } from '$lib/server/utils/prompt-password';
@@ -47,6 +47,8 @@ async function main() {
 
 	const password = await promptPassword('Password: ');
 
+	// Fail here with a field-level message before opening the DB. `provisionUser`
+	// parses again — it's a standalone trust boundary for other callers.
 	const parsed = provisionUserSchema.safeParse({ email, name, password });
 
 	if (!parsed.success) {

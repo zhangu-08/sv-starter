@@ -16,11 +16,16 @@ BETTER_AUTH_URL=https://sv-starter.localhost
 BETTER_AUTH_SECRET=<at-least-32-chars>  # openssl rand -hex 32
 ```
 
-| Variable             | Purpose                                         |
-| -------------------- | ----------------------------------------------- |
-| `DATABASE_URL`       | SQLite (local) or remote DB URL (prod)          |
-| `BETTER_AUTH_URL`    | Public URL of the app (used for auth callbacks) |
-| `BETTER_AUTH_SECRET` | Session/crypto secret — min 32 characters       |
+| Variable             | Purpose                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`       | SQLite (local) or remote DB URL (prod)                                                        |
+| `BETTER_AUTH_URL`    | Public URL of the app (used for auth callbacks)                                               |
+| `BETTER_AUTH_SECRET` | Session/crypto secret — min 32 characters                                                     |
+| `ORIGIN`             | Public origin for `adapter-node` (`https://app.example.com`). Unset: form POSTs 403 on CSRF   |
+| `ADDRESS_HEADER`     | Header `getClientAddress()` reads (usually `X-Forwarded-For`). Unset: one IP bucket per proxy |
+| `XFF_DEPTH`          | Trusted `X-Forwarded-For` hops (default `1`). Match the number of proxies that overwrite it   |
+
+`ORIGIN`, `ADDRESS_HEADER`, and `XFF_DEPTH` are `adapter-node` deploy vars — `pnpm dev` does not need them. Set `ADDRESS_HEADER` only when the proxy **overwrites** `X-Forwarded-For`. If it appends a client-supplied value, clients pick their own IP and the per-IP bucket is useless. Without `ORIGIN`, login POSTs fail CSRF with 403. Without `ADDRESS_HEADER`, 10 failures from anyone lock out every login behind that proxy.
 
 ## Development
 
@@ -54,6 +59,16 @@ Portless must be installed separately — see the [README](../../README.md).
 - **Skip `pnpm dlx` / `pnpx`.** Those download the CLI into a temporary folder with no access to this repo's dependencies — you'll hit `please install required packages: 'drizzle-orm'`.
 - **Unwrapped subcommand?** Use `pnpm exec drizzle-kit <command>`.
 
+## Auth
+
+`hooks.server.ts` mounts Better Auth at `/api/auth/*` and the login form calls
+`auth.api.signInEmail()` so `sveltekitCookies` can set the session cookie. That `auth.api`
+path never hits Better Auth's `onRequest` rate limiter. Failed passwords are throttled in
+`$lib/server/auth/rate-limit.ts` (per-process, keyed on IP and email). Add a throttle next
+to any new `auth.api.*` mutation, or send it through `/api/auth` instead.
+
+Sign-out is `POST /logout` (`auth.api.signOut`). GET `/logout` does not clear the session.
+
 ## User provisioning
 
 This is a **restricted app** — public signup is disabled (`disableSignUp: true`). Users are created by an operator via the provisioning script.
@@ -76,7 +91,8 @@ Requirements:
 
 - Run **`pnpm build`** before deploying so `build/scripts/create-user.js` exists in the image.
 - Use **`-it`** — the script requires an interactive terminal for the password prompt.
-- Set `DATABASE_URL`, `BETTER_AUTH_URL`, and `BETTER_AUTH_SECRET` as container environment variables (no `.env` file, no `--env-file`).
+- Set `DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, and `ORIGIN` as container environment variables (no `.env` file, no `--env-file`).
+- Behind a reverse proxy also set `ADDRESS_HEADER=X-Forwarded-For` and `XFF_DEPTH` to the hop count. The proxy must overwrite `X-Forwarded-For`; do not set `ADDRESS_HEADER` if it only appends. Without these, login CSRF 403s (`ORIGIN`) and the per-IP throttle collapses to one shared bucket (`ADDRESS_HEADER`).
 
 Re-running the script for an existing email fails with `User already exists`.
 

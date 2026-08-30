@@ -1,19 +1,22 @@
 import type { Handle } from '@sveltejs/kit';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 
-import { auth } from '$lib/server/auth';
+import { auth, rejectAnonymous, requiresSession } from '$lib/server/auth';
 import { building } from '$app/env';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// Fetch current session from Better Auth
 	const session = await auth.api.getSession({
 		headers: event.request.headers
 	});
 
-	// Make session and user available on server
 	if (session) {
 		event.locals.session = session.session;
 		event.locals.user = session.user;
+	}
+
+	// Must stay here: layout loads are skipped on client-side nav, actions run before loads.
+	if (requiresSession(event) && !event.locals.user) {
+		rejectAnonymous(event);
 	}
 
 	return svelteKitHandler({ event, resolve, auth, building });
