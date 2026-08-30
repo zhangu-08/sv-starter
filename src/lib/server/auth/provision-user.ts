@@ -1,22 +1,18 @@
 import { betterAuth } from 'better-auth';
 
-import { formatZodError, provisionUserSchema, type ProvisionUserInput } from '$lib/schemas';
-
 import type { AuthOptions } from './options';
 
 /** Matches `createLocalAccountIssuer('credential')` from better-auth. */
 const CREDENTIAL_ISSUER = 'local:credential';
 
-export type { ProvisionUserInput };
+export type ProvisionUserInput = {
+	name: string;
+	email: string;
+	password: string;
+};
 
 export async function provisionUser(input: ProvisionUserInput, authOptions: AuthOptions) {
-	const parsed = provisionUserSchema.safeParse(input);
-
-	if (!parsed.success) {
-		throw new Error(formatZodError(parsed.error));
-	}
-
-	const { name, email, password } = parsed.data;
+	const { name, email, password } = input;
 	const normalizedEmail = email.toLowerCase();
 	const auth = betterAuth(authOptions);
 	const ctx = await auth.$context;

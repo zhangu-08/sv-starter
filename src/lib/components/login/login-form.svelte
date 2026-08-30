@@ -1,33 +1,18 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-
-	import * as Card from '$lib/components/ui/card/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { FieldGroup, Field, FieldLabel, FieldError } from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-
-	import type { SignInFormFailure } from '$lib/schemas';
+	import * as Card from '$lib/components/ui/card';
+	import { Button } from '$lib/components/ui/button';
+	import { FieldGroup, Field, FieldLabel, FieldError } from '$lib/components/ui/field';
+	import { Input } from '$lib/components/ui/input';
 
 	let {
-		form,
-		redirectTo = '/'
+		submitting = false,
+		errorMessage,
+		onsubmit
 	}: {
-		form?: SignInFormFailure | null;
-		redirectTo?: string;
+		submitting?: boolean;
+		errorMessage?: string;
+		onsubmit: (event: SubmitEvent) => void;
 	} = $props();
-
-	// In the action URL rather than a hidden field so it survives a failed submit.
-	const action = $derived(
-		redirectTo === '/'
-			? '?/signInEmail'
-			: `?/signInEmail&redirectTo=${encodeURIComponent(redirectTo)}`
-	);
-
-	let submitting = $state(false);
-
-	function fieldErrors(messages: string[] | undefined) {
-		return messages?.map((message) => ({ message }));
-	}
 </script>
 
 <Card.Root class="mx-auto w-full max-w-sm">
@@ -36,23 +21,13 @@
 		<Card.Description>Enter your email below to login to your account</Card.Description>
 	</Card.Header>
 	<Card.Content>
-		<form
-			method="POST"
-			{action}
-			use:enhance={() => {
-				submitting = true;
-				return async ({ update }) => {
-					await update();
-					submitting = false;
-				};
-			}}
-		>
+		<form {onsubmit}>
 			<FieldGroup>
-				{#if form?.message}
-					<FieldError errors={[{ message: form.message }]} />
+				{#if errorMessage}
+					<FieldError errors={[{ message: errorMessage }]} />
 				{/if}
 
-				<Field data-invalid={form?.errors?.email ? true : undefined}>
+				<Field>
 					<FieldLabel>Email</FieldLabel>
 					<Input
 						name="email"
@@ -60,15 +35,18 @@
 						placeholder="m@example.com"
 						autocomplete="email"
 						required
-						value={form?.values?.email ?? ''}
 					/>
-					<FieldError errors={fieldErrors(form?.errors?.email)} />
 				</Field>
 
-				<Field data-invalid={form?.errors?.password ? true : undefined}>
+				<Field>
 					<FieldLabel>Password</FieldLabel>
-					<Input name="password" type="password" autocomplete="current-password" required />
-					<FieldError errors={fieldErrors(form?.errors?.password)} />
+					<Input
+						name="password"
+						type="password"
+						autocomplete="current-password"
+						required
+						maxlength={128}
+					/>
 				</Field>
 
 				<Field>

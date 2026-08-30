@@ -13,10 +13,10 @@ A SvelteKit starter project for my personal use.
 
 ## Auth
 
-Login is a form action that calls `auth.api.signInEmail()`, not `POST /api/auth/sign-in/email`.
-Better Auth's rate limiter is router middleware and does not run on `auth.api.*`, so the
-action has its own throttle in `$lib/server/auth/rate-limit.ts`. The same bypass applies to
-any later `auth.api.*` call.
+Login is a client `signIn.email` submit to `/api/auth/sign-in/email`. Better Auth owns
+sessions, cookies, and rate limits. The SvelteKit hook gates routes: anonymous pages
+redirect to `/login`; first-party `/api/*` endpoints return `401`. Users are provisioned
+with `pnpm create-user` — public signup is disabled.
 
 ## Commands
 

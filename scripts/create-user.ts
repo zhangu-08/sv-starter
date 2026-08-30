@@ -2,7 +2,6 @@ import { parseArgs } from 'node:util';
 
 import { createAuthOptions } from '$lib/server/auth/options';
 import { provisionUser } from '$lib/server/auth/provision-user';
-import { formatZodError, provisionUserSchema } from '$lib/schemas';
 import { createDb } from '$lib/server/db/create-db';
 import { parsePrivateEnv } from '$lib/server/env-schema';
 import { promptPassword } from '$lib/server/utils/prompt-password';
@@ -45,21 +44,22 @@ async function main() {
 		process.exit(1);
 	}
 
+	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+		console.error('Error: invalid email');
+		process.exit(1);
+	}
+
 	const password = await promptPassword('Password: ');
 
-	// Fail here with a field-level message before opening the DB. `provisionUser`
-	// parses again — it's a standalone trust boundary for other callers.
-	const parsed = provisionUserSchema.safeParse({ email, name, password });
-
-	if (!parsed.success) {
-		console.error(formatZodError(parsed.error));
+	if (password.length < 8 || password.length > 128) {
+		console.error('Error: password must be 8–128 characters');
 		process.exit(1);
 	}
 
 	const env = parsePrivateEnv();
 	const db = createDb(env.DATABASE_URL);
 	const user = await provisionUser(
-		parsed.data,
+		{ email, name, password },
 		createAuthOptions({
 			db,
 			baseURL: env.BETTER_AUTH_URL,

@@ -25,7 +25,7 @@ BETTER_AUTH_SECRET=<at-least-32-chars>  # openssl rand -hex 32
 | `ADDRESS_HEADER`     | Header `getClientAddress()` reads (usually `X-Forwarded-For`). Unset: one IP bucket per proxy |
 | `XFF_DEPTH`          | Trusted `X-Forwarded-For` hops (default `1`). Match the number of proxies that overwrite it   |
 
-`ORIGIN`, `ADDRESS_HEADER`, and `XFF_DEPTH` are `adapter-node` deploy vars — `pnpm dev` does not need them. Set `ADDRESS_HEADER` only when the proxy **overwrites** `X-Forwarded-For`. If it appends a client-supplied value, clients pick their own IP and the per-IP bucket is useless. Without `ORIGIN`, login POSTs fail CSRF with 403. Without `ADDRESS_HEADER`, 10 failures from anyone lock out every login behind that proxy.
+`ORIGIN`, `ADDRESS_HEADER`, and `XFF_DEPTH` are `adapter-node` deploy vars — `pnpm dev` does not need them. Set `ADDRESS_HEADER` only when the proxy **overwrites** `X-Forwarded-For`. If it appends a client-supplied value, clients pick their own IP and the per-IP bucket is useless. Without `ORIGIN`, logout POSTs fail CSRF with 403. Without `ADDRESS_HEADER`, `getClientAddress()` returns the proxy, every login shares one rate-limit bucket, and five failures lock out the whole proxy.
 
 ## Development
 
@@ -61,13 +61,13 @@ Portless must be installed separately — see the [README](../../README.md).
 
 ## Auth
 
-`hooks.server.ts` mounts Better Auth at `/api/auth/*` and the login form calls
-`auth.api.signInEmail()` so `sveltekitCookies` can set the session cookie. That `auth.api`
-path never hits Better Auth's `onRequest` rate limiter. Failed passwords are throttled in
-`$lib/server/auth/rate-limit.ts` (per-process, keyed on IP and email). Add a throttle next
-to any new `auth.api.*` mutation, or send it through `/api/auth` instead.
+`hooks.server.ts` stamps `x-client-ip` from `getClientAddress()` and mounts Better Auth at
+`/api/auth/*`. Login is a client `signIn.email` post to `/api/auth/sign-in/email`, so Better
+Auth's built-in limiter runs (5 attempts / 60s per IP on that path). Do not call
+`auth.api.signInEmail()` from a form action — that bypasses the limiter.
 
-Sign-out is `POST /logout` (`auth.api.signOut`). GET `/logout` does not clear the session.
+Sign-out is `POST /logout` (`auth.api.signOut` + `sveltekitCookies`). GET `/logout` does not
+clear the session. Logout is still a form POST, so `ORIGIN` still matters.
 
 ## User provisioning
 
@@ -92,7 +92,7 @@ Requirements:
 - Run **`pnpm build`** before deploying so `build/scripts/create-user.js` exists in the image.
 - Use **`-it`** — the script requires an interactive terminal for the password prompt.
 - Set `DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, and `ORIGIN` as container environment variables (no `.env` file, no `--env-file`).
-- Behind a reverse proxy also set `ADDRESS_HEADER=X-Forwarded-For` and `XFF_DEPTH` to the hop count. The proxy must overwrite `X-Forwarded-For`; do not set `ADDRESS_HEADER` if it only appends. Without these, login CSRF 403s (`ORIGIN`) and the per-IP throttle collapses to one shared bucket (`ADDRESS_HEADER`).
+- Behind a reverse proxy also set `ADDRESS_HEADER=X-Forwarded-For` and `XFF_DEPTH` to the hop count. The proxy must overwrite `X-Forwarded-For`; do not set `ADDRESS_HEADER` if it only appends. Without `ORIGIN`, logout CSRF 403s. Without `ADDRESS_HEADER`, the per-IP limiter collapses to one shared bucket.
 
 Re-running the script for an existing email fails with `User already exists`.
 
