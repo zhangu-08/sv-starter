@@ -21,6 +21,7 @@ dist/
 .vscode/
 .idea/
 .zed/
+.docs/
 
 # Logs and Debug files
 npm-debug.log*
