@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** Shared by `src/env.ts` (SvelteKit) and the create-user CLI (`process.env`). */
+/** Shared by `src/env.ts` (SvelteKit) and CLI scripts (`process.env`). */
 export const privateEnvSchema = z.object({
 	DATABASE_URL: z.string().min(1),
 	BETTER_AUTH_URL: z.url(),

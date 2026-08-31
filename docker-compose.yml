@@ -1,0 +1,20 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # Inject your runtime configuration
+      - NODE_ENV=development
+      - DATABASE_URL=file:/app/data/local.db
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env (openssl rand -hex 32)}
+      - BETTER_AUTH_URL=http://localhost:3000
+      - ORIGIN=http://localhost:3000
+    volumes:
+      # Mount a volume to keep your SQLite database persistent
+      - sqlite_data:/app/data
+
+volumes:
+  sqlite_data:

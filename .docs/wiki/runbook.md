@@ -46,6 +46,7 @@ Portless must be installed separately — see the [README](../../README.md).
 | `build/index.js`               | App server entry (`adapter-node`) |
 | `build/client/`                | Static client assets              |
 | `build/scripts/create-user.js` | Compiled user provisioning script |
+| `build/scripts/migrate.js`     | Apply committed SQL in `drizzle/` |
 
 ## Database (Drizzle)
 
@@ -53,9 +54,12 @@ Portless must be installed separately — see the [README](../../README.md).
 | ------------------ | ------------------------------------------------ |
 | `pnpm db:push`     | Push schema changes directly to the database     |
 | `pnpm db:generate` | Generate SQL migration files from schema changes |
+| `pnpm db:migrate`  | Apply committed SQL in `drizzle/`                |
 | `pnpm db:studio`   | Open Drizzle Studio                              |
 
-- **Use the scripts above.** They run `drizzle-kit` from this project's `node_modules`, so it can see `drizzle-orm`, your schema, and `drizzle.config.ts`.
+- **Generate on the host, commit `drizzle/`, apply on deploy.** `db:generate` writes files; `db:migrate` (and the container start command) applies them. Do not run generate in the runtime image.
+- **`db:push` is local-only.** Fast iteration without writing files. Prod uses generate + migrate.
+- **Use the scripts above.** They run `drizzle-kit` / the migrate script from this project's `node_modules`, so they can see `drizzle-orm`, your schema, and `drizzle.config.ts`.
 - **Skip `pnpm dlx` / `pnpx`.** Those download the CLI into a temporary folder with no access to this repo's dependencies — you'll hit `please install required packages: 'drizzle-orm'`.
 - **Unwrapped subcommand?** Use `pnpm exec drizzle-kit <command>`.
 
@@ -81,15 +85,16 @@ You will be prompted for a password; input is hidden. Password must be 8–128 c
 
 ### Production (Docker / VPS)
 
-The runtime image runs compiled JS — no `tsx`, no `src/`. After `pnpm build`, `build/scripts/create-user.js` ships next to the app server.
+The runtime image runs compiled JS — no `tsx`, no `src/`. Container start applies `drizzle/` then serves the app. After `pnpm build`, `build/scripts/create-user.js` ships next to the app server.
 
 ```bash
-docker exec -it <container> node build/scripts/create-user.js --email user@example.com --name "User Name"
+docker compose up -d --build
+docker compose exec -it web node build/scripts/create-user.js --email user@user.com --name "demo-user"
 ```
 
 Requirements:
 
-- Run **`pnpm build`** before deploying so `build/scripts/create-user.js` exists in the image.
+- Commit **`drizzle/`** and run **`pnpm build`** so `build/scripts/migrate.js` and `create-user.js` exist in the image.
 - Use **`-it`** — the script requires an interactive terminal for the password prompt.
 - Set `DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, and `ORIGIN` as container environment variables (no `.env` file, no `--env-file`).
 - Behind a reverse proxy also set `ADDRESS_HEADER=X-Forwarded-For` and `XFF_DEPTH` to the hop count. The proxy must overwrite `X-Forwarded-For`; do not set `ADDRESS_HEADER` if it only appends. Without `ORIGIN`, logout CSRF 403s. Without `ADDRESS_HEADER`, the per-IP limiter collapses to one shared bucket.
